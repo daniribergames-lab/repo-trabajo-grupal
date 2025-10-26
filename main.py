@@ -1,6 +1,6 @@
 import libsql
 import envyte
-
+print("Bienvenido al trabajo de Jonathan , Anouar y Daniel")
 # Obtenemos las claves de la base de datos tusro desde .env
 url = envyte.get("DATABASE_URL")
 auth_token = envyte.get("API_TOKEN")
