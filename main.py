@@ -17,7 +17,8 @@ def mostrar_menu():
     print("2. Añadir mascota")
     print("3. Actualizar mascota")
     print("4. Eliminar mascota")
-    print("5. Buscar mascota por nombre")
+    print("5. Buscar mascotas")
+    print("6. Búsquedas avanzadas")
     print("0. Salir")
 
 # Metodo para listar todas las mascotas de la base de datos
@@ -97,18 +98,185 @@ def eliminar_mascota():
 
 # Metodo para buscar una unica mascota
 def buscar_mascota():
+    
     try:
-        nombre = input("Introduce el nombre a buscar: ")
-        cursor.execute("SELECT * FROM Mascota WHERE nombre LIKE ?", (f"%{nombre}%",))
-        resultados = cursor.fetchall()
-        if resultados:
-            for m in resultados:
-                print(f"ID: {m[0]} | Nombre: {m[1]} | Especie: {m[2]} | Raza: {m[3]} | Edad: {m[6]}")
+        id_mascota = int(input("ID de la mascota a eliminar: "))
+        cursor.execute("DELETE FROM Mascota WHERE id = ?", (id_mascota,))
+        conn.commit()
+
+        # Si se ejecuto la operacion el valor sera 1, sino 0
+        if cursor.rowcount == 0:
+            print("No se encontró una mascota con ese ID.")
         else:
-            print("⚠️ No se encontró ninguna mascota con ese nombre.")
+            print("Mascota eliminada correctamente.")
+    except ValueError:
+        print("Error: el ID debe ser un número.")
+    except Exception as e:
+        print(f"Error al eliminar la mascota: {e}")
+
+# Metodo para buscar una unica mascota
+def buscar_mascota():
+    try:
+        while True:
+            print("\n=== BUSCAR MASCOTA ===")
+            print("1. Por nombre")
+            print("2. Por especie")
+            print("3. Por raza")
+            print("4. Por edad")
+            print("5. Por sexo")
+            print("6. Por veterinario asignado")
+            print("7. Mostrar todas")
+            print("0. Volver al menú principal")
+
+            opcion = input("Elige una opción: ")
+
+            if opcion == "0":
+                break
+            elif opcion == "1":
+                valor = input("Introduce el nombre: ")
+                cursor.execute("SELECT * FROM Mascota WHERE nombre LIKE ?", (f"%{valor}%",))
+            elif opcion == "2":
+                valor = input("Introduce la especie (ej: Perro, Gato): ")
+                cursor.execute("SELECT * FROM Mascota WHERE especie LIKE ?", (f"%{valor}%",))
+            elif opcion == "3":
+                valor = input("Introduce la raza: ")
+                cursor.execute("SELECT * FROM Mascota WHERE raza LIKE ?", (f"%{valor}%",))
+            elif opcion == "4":
+                valor = input("Introduce la edad: ")
+                cursor.execute("SELECT * FROM Mascota WHERE edad = ?", (valor,))
+            elif opcion == "5":
+                valor = input("Introduce el sexo (M/F): ")
+                cursor.execute("SELECT * FROM Mascota WHERE sexo = ?", (valor,))
+            elif opcion == "6":
+                valor = input("Introduce el nombre del veterinario: ")
+                cursor.execute("""
+                    SELECT M.*
+                    FROM Mascota M
+                    JOIN Medico_Veterinario V ON M.medico_id = V.id
+                    WHERE V.nombre LIKE ?
+                """, (f"%{valor}%",))
+            elif opcion == "7":
+                print("Listado de mascotas :")
+                print("------------------------")
+                cursor.execute("SELECT * FROM Mascota")
+            else:
+                print("Opción no válida.")
+                continue
+
+            resultados = cursor.fetchall()
+            if resultados:
+                for m in resultados:
+                    print(f"ID: {m[0]} | Nombre: {m[1]} | Especie: {m[2]} | Raza: {m[3]} | Edad: {m[6]} | Médico ID: {m[7]}")
+            else:
+                print("⚠️ No se encontró ninguna mascota con ese criterio.")
+
     except Exception as e:
         print(f"Error al buscar mascotas: {e}")
 
+
+def buscar_avanzado():
+    try:
+        while True:
+            print("\n=== BÚSQUEDAS AVANZADAS ===")
+            print("1. Mascotas y su veterinario")
+            print("2. Edad media por especie")
+            print("3. Número de mascotas por veterinario")
+            print("4. Mascotas sin vacunas registradas")
+            print("5. Mascotas por rango de edad")
+            print("6. Promedio de edad de mascotas por veterinario")
+            print("0. Volver al menú principal")
+
+            opcion = input("Elige una opción: ")
+
+            if opcion == "0":
+                break
+
+            elif opcion == "1":
+                cursor.execute("""
+                    SELECT M.nombre, M.especie, M.raza, V.nombre
+                    FROM Mascota M
+                    JOIN Medico_Veterinario V ON M.medico_id = V.id
+                """)
+                resultados = cursor.fetchall()
+                print("\n🐾 Mascotas y su veterinario:")
+                for r in resultados:
+                    print(f"Mascota: {r[0]} | Especie: {r[1]} | Raza: {r[2]} | Veterinario: {r[3]}")
+
+            elif opcion == "2":
+                cursor.execute("""
+                    SELECT especie, ROUND(AVG(edad),2)
+                    FROM Mascota
+                    GROUP BY especie
+                """)
+                resultados = cursor.fetchall()
+                print("\n Edad media por especie:")
+                for r in resultados:
+                    print(f"Especie: {r[0]} | Edad media: {r[1]} años")
+
+            elif opcion == "3":
+                cursor.execute("""
+                    SELECT V.nombre, COUNT(M.id)
+                    FROM Medico_Veterinario V
+                    LEFT JOIN Mascota M ON M.medico_id = V.id
+                    GROUP BY V.nombre
+                """)
+                resultados = cursor.fetchall()
+                print("\n Número de mascotas por veterinario:")
+                for r in resultados:
+                    print(f"Veterinario: {r[0]} | Mascotas: {r[1]}")
+
+            elif opcion == "4":
+                cursor.execute("""
+                    SELECT M.nombre, M.especie, M.raza
+                    FROM Mascota M
+                    LEFT JOIN Vacunas V ON M.id = V.mascota_id
+                    WHERE V.id IS NULL
+                """)
+                resultados = cursor.fetchall()
+                print("\n Mascotas sin vacunas registradas:")
+                if resultados:
+                    for r in resultados:
+                        print(f"Mascota: {r[0]} | Especie: {r[1]} | Raza: {r[2]}")
+                else:
+                    print("Todas las mascotas tienen vacunas registradas.")
+
+            elif opcion == "5":
+                # Buscar mascotas por rango de edad
+                min_edad = input("Edad mínima: ")
+                max_edad = input("Edad máxima: ")
+                cursor.execute("""
+                    SELECT nombre, especie, raza, edad
+                    FROM Mascota
+                    WHERE edad BETWEEN ? AND ?
+                """, (min_edad, max_edad))
+                resultados = cursor.fetchall()
+                print(f"\n Mascotas entre {min_edad} y {max_edad} años:")
+                if resultados:
+                    for r in resultados:
+                        print(f"Mascota: {r[0]} | Especie: {r[1]} | Raza: {r[2]} | Edad: {r[3]}")
+                else:
+                    print("No hay mascotas en ese rango de edad.")
+
+            elif opcion == "6":
+                # Promedio de edad de mascotas por veterinario
+                cursor.execute("""
+                    SELECT V.nombre, ROUND(AVG(M.edad),2)
+                    FROM Medico_Veterinario V
+                    LEFT JOIN Mascota M ON M.medico_id = V.id
+                    GROUP BY V.nombre
+                """)
+                resultados = cursor.fetchall()
+                print("\nPromedio de edad de mascotas por veterinario:")
+                for r in resultados:
+                    print(f"Veterinario: {r[0]} | Edad media: {r[1]} años")
+
+            else:
+                print("Opción no válida.")
+
+    except Exception as e:
+        print(f"Error en búsqueda avanzada: {e}")
+
+    
 # MENÚ PRINCIPAL
 try:
     while True:
@@ -125,6 +293,8 @@ try:
             eliminar_mascota()
         elif opcion == "5":
             buscar_mascota()
+        elif opcion == "6":
+            buscar_avanzado()
         elif opcion == "0":
             print("👋 Saliendo de la agenda...")
             break
