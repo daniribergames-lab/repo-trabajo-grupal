@@ -8,7 +8,7 @@ try:
     auth_token = envyte.get("API_TOKEN")
 
     # Nos conectamos a turso
-    conn = libsql.connect("veterinariodb", sync_url=url, auth_token=auth_token)
+    conn = libsql.connect("veterinaria", sync_url=url, auth_token=auth_token)
     conn.sync()
 
     cursor = conn.cursor()
