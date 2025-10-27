@@ -2,6 +2,8 @@ import libsql
 import envyte
 print("Bienvenido al trabajo de Jonathan , Anouar y Daniel")
 # Obtenemos las claves de la base de datos tusro desde .env
+
+
 url = envyte.get("DATABASE_URL")
 auth_token = envyte.get("API_TOKEN")
 
@@ -472,13 +474,12 @@ def buscar():
 def buscar_avanzado():
     try:
         while True:
-            print("\n=== BÚSQUEDAS AVANZADAS ===")
-            print("1. Mascotas y su veterinario")
-            print("2. Edad media por especie")
-            print("3. Número de mascotas por veterinario")
-            print("4. Mascotas sin vacunas registradas")
-            print("5. Mascotas por rango de edad")
-            print("6. Promedio de edad de mascotas por veterinario")
+            print("\n===  BÚSQUEDAS AVANZADAS ===")
+            print("1. Nombre del veterinario de una mascota específica")
+            print("2. Vacunas aplicadas a una mascota")
+            print("3. Mascotas atendidas por un veterinario concreto")
+            print("4. Mascotas con una vacuna específica")
+            print("5. Veterinarios y cantidad de mascotas vacunadas bajo su cuidado")
             print("0. Volver al menú principal")
 
             opcion = input("Elige una opción: ")
@@ -487,83 +488,84 @@ def buscar_avanzado():
                 break
 
             elif opcion == "1":
+                nombre_mascota = input("Introduce el nombre de la mascota: ")
                 cursor.execute("""
-                    SELECT M.nombre, M.especie, M.raza, V.nombre
+                    SELECT M.nombre AS Mascota, V.nombre AS Veterinario
                     FROM Mascota M
                     JOIN Medico_Veterinario V ON M.medico_id = V.id
-                """)
+                    WHERE M.nombre LIKE ?
+                """, (f"%{nombre_mascota}%",))
                 resultados = cursor.fetchall()
-                print("\nMascotas y su veterinario:")
-                for r in resultados:
-                    print(f"Mascota: {r[0]} | Especie: {r[1]} | Raza: {r[2]} | Veterinario: {r[3]}")
+                print("\n Veterinario asignado a la mascota:")
+                if resultados:
+                    for r in resultados:
+                        print(f"Mascota: {r[0]} | Veterinario: {r[1]}")
+                else:
+                    print("No se encontró ninguna mascota con ese nombre.")
 
             elif opcion == "2":
+                nombre_mascota = input("Introduce el nombre de la mascota: ")
                 cursor.execute("""
-                    SELECT especie, ROUND(AVG(edad),2)
-                    FROM Mascota
-                    GROUP BY especie
-                """)
+                    SELECT M.nombre, V.nombre_vacuna, V.fecha_aplicacion, V.proxima_dosis
+                    FROM Mascota M
+                    JOIN Vacunas V ON M.id = V.mascota_id
+                    WHERE M.nombre LIKE ?
+                """, (f"%{nombre_mascota}%",))
                 resultados = cursor.fetchall()
-                print("\nEdad media por especie:")
-                for r in resultados:
-                    print(f"Especie: {r[0]} | Edad media: {r[1]} años")
+                print("\n Vacunas aplicadas a la mascota:")
+                if resultados:
+                    for r in resultados:
+                        print(f"Mascota: {r[0]} | Vacuna: {r[1]} | Aplicada: {r[2]} | Próxima: {r[3]}")
+                else:
+                    print("No se encontraron vacunas para esa mascota.")
 
             elif opcion == "3":
+                nombre_vet = input("Introduce el nombre del veterinario: ")
                 cursor.execute("""
-                    SELECT V.nombre, COUNT(M.id)
+                    SELECT V.nombre AS Veterinario, M.nombre AS Mascota, M.especie, M.raza
                     FROM Medico_Veterinario V
-                    LEFT JOIN Mascota M ON M.medico_id = V.id
-                    GROUP BY V.nombre
-                """)
+                    JOIN Mascota M ON M.medico_id = V.id
+                    WHERE V.nombre LIKE ?
+                """, (f"%{nombre_vet}%",))
                 resultados = cursor.fetchall()
-                print("\nNúmero de mascotas por veterinario:")
-                for r in resultados:
-                    print(f"Veterinario: {r[0]} | Mascotas: {r[1]}")
+                print("\n Mascotas atendidas por el veterinario:")
+                if resultados:
+                    for r in resultados:
+                        print(f"Veterinario: {r[0]} | Mascota: {r[1]} | Especie: {r[2]} | Raza: {r[3]}")
+                else:
+                    print("Ese veterinario no tiene mascotas registradas.")
 
             elif opcion == "4":
+                nombre_vacuna = input("Introduce el nombre de la vacuna: ")
                 cursor.execute("""
-                    SELECT M.nombre, M.especie, M.raza
+                    SELECT M.nombre AS Mascota, M.especie, V.nombre_vacuna, V.fecha_aplicacion
                     FROM Mascota M
-                    LEFT JOIN Vacunas V ON M.id = V.mascota_id
-                    WHERE V.id IS NULL
-                """)
+                    JOIN Vacunas V ON M.id = V.mascota_id
+                    WHERE V.nombre_vacuna LIKE ?
+                """, (f"%{nombre_vacuna}%",))
                 resultados = cursor.fetchall()
-                print("\nMascotas sin vacunas registradas:")
+                print("\n Mascotas con esa vacuna:")
                 if resultados:
                     for r in resultados:
-                        print(f"Mascota: {r[0]} | Especie: {r[1]} | Raza: {r[2]}")
+                        print(f"Mascota: {r[0]} | Especie: {r[1]} | Vacuna: {r[2]} | Aplicada: {r[3]}")
                 else:
-                    print("Todas las mascotas tienen vacunas registradas.")
+                    print("No se encontraron mascotas con esa vacuna.")
 
             elif opcion == "5":
-                # Buscar mascotas por rango de edad
-                min_edad = input("Edad mínima: ")
-                max_edad = input("Edad máxima: ")
                 cursor.execute("""
-                    SELECT nombre, especie, raza, edad
-                    FROM Mascota
-                    WHERE edad BETWEEN ? AND ?
-                """, (min_edad, max_edad))
-                resultados = cursor.fetchall()
-                print(f"\nMascotas entre {min_edad} y {max_edad} años:")
-                if resultados:
-                    for r in resultados:
-                        print(f"Mascota: {r[0]} | Especie: {r[1]} | Raza: {r[2]} | Edad: {r[3]}")
-                else:
-                    print("No hay mascotas en ese rango de edad.")
-
-            elif opcion == "6":
-                # Promedio de edad de mascotas por veterinario
-                cursor.execute("""
-                    SELECT V.nombre, ROUND(AVG(M.edad),2)
-                    FROM Medico_Veterinario V
-                    LEFT JOIN Mascota M ON M.medico_id = V.id
-                    GROUP BY V.nombre
+                    SELECT MV.nombre AS Veterinario, COUNT(DISTINCT M.id) AS Mascotas_Vacunadas
+                    FROM Medico_Veterinario MV
+                    JOIN Mascota M ON MV.id = M.medico_id
+                    JOIN Vacunas V ON M.id = V.mascota_id
+                    GROUP BY MV.nombre
                 """)
                 resultados = cursor.fetchall()
-                print("\nPromedio de edad de mascotas por veterinario:")
-                for r in resultados:
-                    print(f"Veterinario: {r[0]} | Edad media: {r[1]} años")
+                print("\n Veterinarios y cantidad de mascotas vacunadas:")
+                if resultados:
+                    for r in resultados:
+                        print(f"Veterinario: {r[0]} | Mascotas vacunadas: {r[1]}")
+                else:
+                    print("No hay registros de vacunaciones.")
 
             else:
                 print("Opción no válida.")
