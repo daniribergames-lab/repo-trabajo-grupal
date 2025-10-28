@@ -1,9 +1,8 @@
 import libsql
 import envyte
 print("Bienvenido al trabajo de Jonathan , Anouar y Daniel")
+
 # Obtenemos las claves de la base de datos tusro desde .env
-
-
 url = envyte.get("DATABASE_URL")
 auth_token = envyte.get("API_TOKEN")
 
@@ -312,24 +311,6 @@ def eliminar():
     except Exception as e:
         print(f"Error al eliminar el registro: {e}")
 
-# Metodo para buscar una unica mascota
-def buscar_mascota():
-    
-    try:
-        id_mascota = int(input("ID de la mascota a eliminar: "))
-        cursor.execute("DELETE FROM Mascota WHERE id = ?", (id_mascota,))
-        conn.commit()
-
-        # Si se ejecuto la operacion el valor sera 1, sino 0
-        if cursor.rowcount == 0:
-            print("No se encontró una mascota con ese ID.")
-        else:
-            print("Mascota eliminada correctamente.")
-    except ValueError:
-        print("Error: el ID debe ser un número.")
-    except Exception as e:
-        print(f"Error al eliminar la mascota: {e}")
-
 # Metodo para buscar mascotas,medicos o vacunas
 def buscar():
     try:
@@ -386,7 +367,6 @@ def buscar():
                     """, (f"%{valor}%",))
                 elif opcion == "7":
                     print("Listado de mascotas :")
-                    print("------------------------")
                     cursor.execute("SELECT * FROM Mascota")
                 else:
                     print("Opción no válida.")
